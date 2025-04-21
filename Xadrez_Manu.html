@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xadrez da Manu - Jogo de Xadrez 3D</title>
+    <style>
+        /* Estilos globais */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background-color: #121212;
+            color: white;
+        }
+        
+        /* Container do jogo */
+        #chess-game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* Canvas do jogo */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Tela de carregamento */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121212;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        #loading-title {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ffdf00; /* Amarelo da bandeira do Brasil */
+            text-shadow: 0 0 10px rgba(0, 156, 59, 0.5); /* Verde da bandeira do Brasil */
+        }
+        
+        #loading-progress {
+            width: 300px;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #loading-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(to right, #009c3b, #ffdf00, #002776); /* Cores da bandeira do Brasil */
+            transition: width 0.3s ease-in-out;
+        }
+        
+        #loading-text {
+            font-size: 16px;
+            color: #ccc;
+        }
+        
+        /* Painel de controle */
+        .game-control-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 250px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            z-index: 100;
+            border: 2px solid #002776; /* Azul da bandeira do Brasil */
+            max-height: calc(100% - 20px);
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            text-align: center;
+            color: #ffdf00; /* Amarelo da bandeira do Brasil */
+            text-shadow: 0 0 5px rgba(0, 156, 59, 0.5); /* Verde da bandeira do Brasil */
+        }
+        
+        .selector-container {
+            margin-bottom: 12px;
+        }
+        
+        .selector-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .selector {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #222;
+            color: white;
+        }
+        
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .control-button {
+            padding: 8px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        
+        .new-game-button {
+            background-color: #009c3b; /* Verde da bandeira do Brasil */
+            color: white;
+            grid-column: span 2;
+        }
+        
+        .new-game-button:hover {
+            background-color: #007c2f;
+        }
+        
+        .undo-button {
+            background-color: #ffdf00; /* Amarelo da bandeira do Brasil */
+            color: #333;
+        }
+        
+        .undo-button:hover {
+            background-color: #e6c700;
+        }
+        
+        .hint-button {
+            background-color: #002776; /* Azul da bandeira do Brasil */
+            color: white;
+        }
+        
+        .hint-button:hover {
+            background-color: #001c5c;
+        }
+        
+        .flip-button {
+            background-color: #ffdf00; /* Amarelo da bandeira do Brasil */
+            color: #333;
+        }
+        
+        .flip-button:hover {
+            background-color: #e6c700;
+        }
+        
+        .training-controls {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        
+        .video-tips-button {
+            background-color: #002776; /* Azul da bandeira do Brasil */
+            color: white;
+        }
+        
+        .video-tips-button:hover {
+            background-color: #001c5c;
+        }
+        
+        .show-moves-button {
+            background-color: #009c3b; /* Verde da bandeira do Brasil */
+            color: white;
+        }
+        
+        .show-moves-button:hover {
+            background-color: #007c2f;
+        }
+        
+        .analyze-button {
+            background-color: #ffdf00; /* Amarelo da bandeira do Brasil */
+            color: #333;
+        }
+        
+        .analyze-button:hover {
+            background-color: #e6c700;
+        }
+        
+        /* Painel de dicas em vídeo */
+        .video-tips-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            font-family: Arial, sans-serif;
+            padding: 15px;
+            z-index: 100;
+            border: 2px solid #009c3b; /* Verde da bandeira do Brasil */
+            max-height: calc(100% - 20px);
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .tips-panel-title {
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            text-align: center;
+            color: #ffdf00; /* Amarelo da bandeira do Brasil */
+        }
+        
+        .tips-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .category-button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        
+        .category-button.active {
+            background-color: #009c3b; /* Verde da bandeira do Brasil */
+        }
+        
+        .video-container {
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #222;
+        }
+        
+        .video-placeholder {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ccc;
+        }
+        
+        .video-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffdf00; /* Amarelo da bandeira do Brasil */
+        }
+        
+        .video-description {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .tips-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        
+        .nav-button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #002776; /* Azul da bandeira do Brasil */
+            color: white;
+            transition: background-color 0.2s;
+        }
+        
+        .nav-button:hover {
+            background-color: #001c5c;
+        }
+        
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #444;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: none;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .game-control-panel {
+                width: 200px;
+                padding: 10px;
+            }
+            
+            .panel-title {
+                font-size: 18px;
+            }
+            
+            .selector-label {
+                font-size: 12px;
+            }
+            
+            .selector {
+                padding: 6px;
+                font-size: 12px;
+            }
+            
+            .control-button {
+                padding: 6px 0;
+                font-size: 12px;
+            }
+            
+            .video-tips-panel {
+                width: 250px;
+            }
+            
+            .tips-panel-title {
+                font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-control-panel {
+                width: 100%;
+                height: auto;
+                top: auto;
+                left: 0;
+                bottom: 0;
+                max-height: 40%;
+            }
+            
+            .video-tips-panel {
+                width: 100%;
+                height: 30%;
+                top: 0;
+                right: 0;
+            }
+        }
+
+        /* Mensagem de instruções CORS */
+        #cors-instructions {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        #cors-instructions h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ffdf00;
+        }
+        
+        #cors-instructions p {
+            font-size: 16px;
+            margin-bottom: 15px;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        
+        #cors-instructions code {
+            display: block;
+            background-color: #222;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: left;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-width: 600px;
+        }
+        
+        #cors-instructions button {
+            padding: 10px 20px;
+            background-color: #009c3b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        #cors-instructions button:hover {
+            background-color: #007c2f;
+        }
+    </style>
+</head>
+<body>
+    <!-- Instruções CORS -->
+    <div id="cors-instructions">
+        <h2>Instruções para Executar o Xadrez da Manu</h2>
+        <p>Este jogo utiliza recursos 3D que são bloqueados por políticas de segurança do navegador quando aberto diretamente como arquivo local.</p>
+        <p>Para jogar, escolha uma das seguintes opções:</p>
+        
+        <h3 style="color: #ffdf00; margin-top: 20px;">Opção 1: Usar um servidor web local (Recomendado)</h3>
+        <p>1. Instale o Python (se ainda não tiver)</p>
+        <p>2. Abra o prompt de comando ou terminal</p>
+        <p>3. Navegue até a pasta onde está este arquivo HTML</p>
+        <p>4. Execute um dos seguintes comandos:</p>
+        <code>Para Python 3: python -m http.server 8000
+Para Python 2: python -m SimpleHTTPServer 8000</code>
+        <p>5. Abra seu navegador e acesse: <strong>http://localhost:8000</strong></p>
+        
+        <h3 style="color: #ffdf00; margin-top: 20px;">Opção 2: Desativar temporariamente a segurança CORS no Chrome</h3>
+        <p>1. Feche todas as janelas do Chrome</p>
+        <p>2. Abra o prompt de comando ou terminal</p>
+        <p>3. Execute o Chrome com flags especiais:</p>
+        
+        <p><strong>Para Windows:</strong></p>
+        <code>"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --disable-web-security --user-data-dir="C:\\ChromeDevSession"</code>
+        
+        <p><strong>Para macOS:</strong></p>
+        <code>open -a "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/ChromeDevSession"</code>
+        
+        <p><strong>Para Linux:</strong></p>
+        <code>google-chrome --disable-web-security --user-data-dir="/tmp/ChromeDevSession"</code>
+        
+        <p>4. No Chrome que abrir, você poderá carregar este arquivo HTML diretamente</p>
+        
+        <button id="continue-anyway">Continuar Mesmo Assim</button>
+    </div>
+
+    <!-- Tela de carregamento -->
+    <div id="loading-screen">
+        <h1 id="loading-title">Xadrez da Manu</h1>
+        <div id="loading-progress">
+            <div id="loading-bar"></div>
+        </div>
+        <p id="loading-text">Carregando recursos...</p>
+    </div>
+    
+    <!-- Container do jogo -->
+    <div id="chess-game-container"></div>
+    
+    <!-- Scripts -->
+    <script>
+        // Código para o aviso CORS
+        document.getElementById('continue-anyway').addEventListener('click', function() {
+            document.getElementById('cors-instructions').style.display = 'none';
+        });
+
+        // Código embutido para Three.js (versão mínima)
+        // Three.js r128
+        !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t="undefined"!=typeof globalThis?globalThis:t||self).THREE={})}(this,(function(t){"use strict";const e="128",n=100,i=300,r=301,s=302,a=303,o=304,l=306,c=307,h=1e3,u=1001,d=1002,p=1003,m=1004,f=1005,g=1006,v=1007,y=1008,x=1009,_=1012,w=1014,b=1015,M=1016,S=1020,T=1022,E=1023,A=1026,L=1027,R=33776,C=33777,P=33778,D=33779,I=35840,N=35841,B=35842,z=35843,F=37492,O=37496,H=2300,G=2301,U=2302,k=2400,V=2401,W=2402,j=2500,q=2501,X=3e3,Y=3001,Z=3007,J=3002,Q=3004,K=3005,$=3006,tt=7680,et=35044,nt=35048,it="300 es";class rt{addEventListener(t,e){void 0===this._listeners&&(this._listeners={});const n=this._listeners;void 0===n[t]&&(n[t]=[]),-1===n[t].indexOf(e)&&n[t].push(e)}hasEventListener(t,e){if(void 0===this._listeners)return!1;const n=this._listeners;return void 0!==n[t]&&-1!==n[t].indexOf(e)}removeEventListener(t,e){if(void 0===this._listeners)return;const n=this._listeners[t];if(void 0!==n){const t=n.indexOf(e);-1!==t&&n.splice(t,1)}}dispatchEvent(t){if(void 0===this._listeners)return;const e=this._listeners[t.type];if(void 0!==e){t.target=this;const n=e.slice(0);for(let e=0,i=n.length;e<i;e++)n[e].call(this,t);t.target=null}}}
+
+        // Código embutido para chess.js
+        // chess.js v0.10.3
+        var Chess=function(r){var u="b",s="w",l=-1,_="p",A="n",S="b",m="r",y="q",p="k",t="pnbrqkPNBRQK",e="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",g=["1-0","0-1","1/2-1/2","*"],C={b:[16,32,17,15],w:[-16,-32,-17,-15]},T={n:[-18,-33,-31,-14,18,33,31,14],b:[-17,-15,17,15],r:[-16,1,16,-1],q:[-17,-16,-15,1,17,16,15,-1],k:[-17,-16,-15,1,17,16,15,-1]},c=[20,0,0,0,0,0,0,24,0,0,0,0,0,0,20,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,24,24,24,24,24,24,56,0,56,24,24,24,24,24,24,0,0,0,0,0,0,2,53,56,53,2,0,0,0,0,0,0,0,0,0,0,0,20,2,24,2,20,0,0,0,0,0,0,0,0,0,0,20,0,0,24,0,0,20,0,0,0,0,0,0,0,0,20,0,0,0,24,0,0,0,20,0,0,0,0,0,0,20,0,0,0,0,24,0,0,0,0,20,0,0,0,0,20,0,0,0,0,0,24,0,0,0,0,0,20,0,0,20,0,0,0,0,0,0,24,0,0,0,0,0,0,20],v=[17,0,0,0,0,0,0,16,0,0,0,0,0,0,15,0,0,17,0,0,0,0,0,16,0,0,0,0,0,15,0,0,0,0,17,0,0,0,0,16,0,0,0,0,15,0,0,0,0,0,0,17,0,0,0,16,0,0,0,15,0,0,0,0,0,0,0,0,17,0,0,16,0,0,15,0,0,0,0,0,0,0,0,0,0,17,0,16,0,15,0,0,0,0,0,0,0,0,0,0,0,0,17,16,15,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,-15,-16,-17,0,0,0,0,0,0,0,0,0,0,0,0,-15,0,-16,0,-17,0,0,0,0,0,0,0,0,0,0,-15,0,0,-16,0,0,-17,0,0,0,0,0,0,0,0,-15,0,0,0,-16,0,0,0,-17,0,0,0,0,0,0,-15,0,0,0,0,-16,0,0,0,0,-17,0,0,0,0,-15,0,0,0,0,0,-16,0,0,0,0,0,-17,0,0,-15,0,0,0,0,0,0,-16,0,0,0,0,0,0,-17],h={p:0,n:1,b:2,r:3,q:4,k:5},o={NORMAL:"n",CAPTURE:"c",BIG_PAWN:"b",EP_CAPTURE:"e",PROMOTION:"p",KSIDE_CASTLE:"k",QSIDE_CASTLE:"q"},I={NORMAL:1,CAPTURE:2,BIG_PAWN:4,EP_CAPTURE:8,PROMOTION:16,KSIDE_CASTLE:32,QSIDE_CASTLE:64},P=7,w=6,L=1,R=0,N={a8:0,b8:1,c8:2,d8:3,e8:4,f8:5,g8:6,h8:7,a7:16,b7:17,c7:18,d7:19,e7:20,f7:21,g7:22,h7:23,a6:32,b6:33,c6:34,d6:35,e6:36,f6:37,g6:38,h6:39,a5:48,b5:49,c5:50,d5:51,e5:52,f5:53,g5:54,h5:55,a4:64,b4:65,c4:66,d4:67,e4:68,f4:69,g4:70,h4:71,a3:80,b3:81,c3:82,d3:83,e3:84,f3:85,g3:86,h3:87,a2:96,b2:97,c2:98,d2:99,e2:100,f2:101,g2:102,h2:103,a1:112,b1:113,c1:114,d1:115,e1:116,f1:117,g1:118,h1:119},E={w:[{square:N.a1,flag:I.QSIDE_CASTLE},{square:N.h1,flag:I.KSIDE_CASTLE}],b:[{square:N.a8,flag:I.QSIDE_CASTLE},{square:N.h8,flag:I.KSIDE_CASTLE}]},O=new Array(128),k={w:l,b:l},q=s,D={w:0,b:0},K=l,d=0,b=1,Q=[],U={};function x(r){void 0===r&&(r=!1),O=new Array(128),k={w:l,b:l},q=s,D={w:0,b:0},K=l,d=0,b=1,Q=[],r||(U={}),F(M())}function j(){B(e)}function B(r,e){void 0===e&&(e=!1);var n=r.split(/\s+/),t=n[0],o=0;if(!$(r).valid)return!1;x(e);for(var i=0;i<t.length;i++){var f=t.charAt(i);if("/"===f)o+=8;else if(-1!=="0123456789".indexOf(f))o+=parseInt(f,10);else{var a=f<"a"?s:u;W({type:f.toLowerCase(),color:a},fr(o)),o++}}return q=n[1],-1<n[2].indexOf("K")&&(D.w|=I.KSIDE_CASTLE),-1<n[2].indexOf("Q")&&(D.w|=I.QSIDE_CASTLE),-1<n[2].indexOf("k")&&(D.b|=I.KSIDE_CASTLE),-1<n[2].indexOf("q")&&(D.b|=I.QSIDE_CASTLE),K="-"===n[3]?l:N[n[3]],d=parseInt(n[4],10),b=parseInt(n[5],10),F(M()),!0}function $(r){var e="No errors.",n="FEN string must contain six space-delimited fields.",t="6th field (move number) must be a positive integer.",o="5th field (half move counter) must be a non-negative integer.",i="4th field (en-passant square) is invalid.",f="3rd field (castling availability) is invalid.",a="2nd field (side to move) is invalid.",l="1st field (piece positions) does not contain 8 '/'-delimited rows.",u="1st field (piece positions) is invalid [consecutive numbers].",s="1st field (piece positions) is invalid [invalid piece].",p="1st field (piece positions) is invalid [row too large].",c="Illegal en-passant square",v=r.split(/\s+/);if(6!==v.length)return{valid:!1,error_number:1,error:n};if(isNaN(v[5])||parseInt(v[5],10)<=0)return{valid:!1,error_number:2,error:t};if(isNaN(v[4])||parseInt(v[4],10)<0)return{valid:!1,error_number:3,error:o};if(!/^(-|[abcdefgh][36])$/.test(v[3]))return{valid:!1,error_number:4,error:i};if(!/^(KQ?k?q?|Qk?q?|kq?|q|-)$/.test(v[2]))return{valid:!1,error_number:5,error:f};if(!/^(w|b)$/.test(v[1]))return{valid:!1,error_number:6,error:a};var g=v[0].split("/");if(8!==g.length)return{valid:!1,error_number:7,error:l};for(var h=0;h<g.length;h++){for(var E=0,d=!1,b=0;b<g[h].length;b++)if(isNaN(g[h][b])){if(!/^[prnbqkPRNBQK]$/.test(g[h][b]))return{valid:!1,error_number:9,error:s};E+=1,d=!1}else{if(d)return{valid:!1,error_number:8,error:u};E+=parseInt(g[h][b],10),d=!0}if(8!==E)return{valid:!1,error_number:10,error:p}}return"3"==v[3][1]&&"w"==v[1]||"6"==v[3][1]&&"b"==v[1]?{valid:!1,error_number:11,error:c}:{valid:!0,error_number:0,error:e}}
+
+        // Código embutido para OrbitControls
+        // OrbitControls.js - Three.js
+        THREE.OrbitControls=function(e,t){this.object=e,this.domElement=void 0!==t?t:document,this.enabled=!0,this.target=new THREE.Vector3,this.minDistance=0,this.maxDistance=1/0,this.minZoom=0,this.maxZoom=1/0,this.minPolarAngle=0,this.maxPolarAngle=Math.PI,this.minAzimuthAngle=-1/0,this.maxAzimuthAngle=1/0,this.enableDamping=!1,this.dampingFactor=.05,this.enableZoom=!0,this.zoomSpeed=1,this.enableRotate=!0,this.rotateSpeed=1,this.enablePan=!0,this.panSpeed=1,this.screenSpacePanning=!0,this.keyPanSpeed=7,this.autoRotate=!1,this.autoRotateSpeed=2,this.enableKeys=!0,this.keys={LEFT:37,UP:38,RIGHT:39,BOTTOM:40},this.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.PAN},this.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN},this.target0=this.target.clone(),this.position0=this.object.position.clone(),this.zoom0=this.object.zoom,this.getPolarAngle=function(){return p.phi},this.getAzimuthalAngle=function(){return p.theta},this.saveState=function(){n.target0.copy(n.target),n.position0.copy(n.object.position),n.zoom0=n.object.zoom},this.reset=function(){n.target.copy(n.target0),n.object.position.copy(n.position0),n.object.zoom=n.zoom0,n.object.updateProjectionMatrix(),n.dispatchEvent(i),n.update(),s=r.NONE},this.update=function(){var t=new THREE.Vector3,i=(new THREE.Quaternion).setFromUnitVectors(e.up,new THREE.Vector3(0,1,0)),a=i.clone().inverse(),m=new THREE.Vector3,g=new THREE.Quaternion;return function(){var e=n.object.position;return t.copy(e).sub(n.target),t.applyQuaternion(i),p.setFromVector3(t),n.autoRotate&&s===r.NONE&&T(2*Math.PI/60/60*n.autoRotateSpeed),n.enableDamping?(p.theta+=d.theta*n.dampingFactor,p.phi+=d.phi*n.dampingFactor):(p.theta+=d.theta,p.phi+=d.phi),p.theta=Math.max(n.minAzimuthAngle,Math.min(n.maxAzimuthAngle,p.theta)),p.phi=Math.max(n.minPolarAngle,Math.min(n.maxPolarAngle,p.phi)),p.makeSafe(),p.radius*=c,p.radius=Math.max(n.minDistance,Math.min(n.maxDistance,p.radius)),!0===n.enableDamping?n.target.addScaledVector(h,n.dampingFactor):n.target.add(h),t.setFromSpherical(p),t.applyQuaternion(a),e.copy(n.target).add(t),n.object.lookAt(n.target),!0===n.enableDamping?(d.theta*=1-n.dampingFactor,d.phi*=1-n.dampingFactor,h.multiplyScalar(1-n.dampingFactor)):(d.set(0,0,0),h.set(0,0,0)),c=1,!!(u||m.distanceToSquared(n.object.position)>o||8*(1-g.dot(n.object.quaternion))>o)&&(n.dispatchEvent(i),m.copy(n.object.position),g.copy(n.object.quaternion),u=!1,!0)}}(),this.dispose=function(){n.domElement.removeEventListener("contextmenu",Q),n.domElement.removeEventListener("mousedown",Y),n.domElement.removeEventListener("wheel",K),n.domElement.removeEventListener("touchstart",$),n.domElement.removeEventListener("touchend",ee),n.domElement.removeEventListener("touchmove",J),n.domElement.ownerDocument.removeEventListener("mousemove",Z),n.domElement.ownerDocument.removeEventListener("mouseup",X),n.domElement.removeEventListener("keydown",q)};var n=this,i={type:"change"},a={type:"start"},o=1e-6,r={NONE:-1,ROTATE:0,DOLLY:1,PAN:2,TOUCH_ROTATE:3,TOUCH_PAN:4,TOUCH_DOLLY_PAN:5,TOUCH_DOLLY_ROTATE:6},s=r.NONE,p=new THREE.Spherical,d=new THREE.Spherical,c=1,h=new THREE.Vector3,u=!1,m=new THREE.Vector2,g=new THREE.Vector2,f=new THREE.Vector2,v=new THREE.Vector2,y=new THREE.Vector2,w=new THREE.Vector2,b=new THREE.Vector2,E=new THREE.Vector2,S=new THREE.Vector2;function T(e){return 2*Math.PI*n.object.position.y/2e3*n.autoRotateSpeed}function A(){return Math.pow(.95,n.zoomSpeed)}function R(e){d.theta-=e}function P(e){d.phi-=e}var L,C=(L=new THREE.Vector3,function(e,t){L.setFromMatrixColumn(t,0),L.multiplyScalar(-e),h.add(L)}),D=function(){var e=new THREE.Vector3;return function(t,n){!0===n.screenSpacePanning?e.setFromMatrixColumn(n.object.matrix,1):(e.setFromMatrixColumn(n.object.matrix,0),e.crossVectors(n.object.up,e)),e.multiplyScalar(t),h.add(e)}}(),I=function(){var e=new THREE.Vector3;return function(t,i){var a=n.domElement;if(n.object.isPerspectiveCamera){var o=n.object.position;e.copy(o).sub(n.target);var r=e.length();r*=Math.tan(n.object.fov/2*Math.PI/180),C(2*t*r/a.clientHeight,n.object.matrix),D(2*i*r/a.clientHeight,n)}else n.object.isOrthographicCamera?(C(t*(n.object.right-n.object.left)/n.object.zoom/a.clientWidth,n.object.matrix),D(i*(n.object.top-n.object.bottom)/n.object.zoom/a.clientHeight,n)):(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - pan disabled."),n.enablePan=!1)}}();function N(e){n.object.isPerspectiveCamera?c/=e:n.object.isOrthographicCamera?(n.object.zoom=Math.max(n.minZoom,Math.min(n.maxZoom,n.object.zoom*e)),n.object.updateProjectionMatrix(),u=!0):(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled."),n.enableZoom=!1)}function B(e){n.object.isPerspectiveCamera?c*=e:n.object.isOrthographicCamera?(n.object.zoom=Math.max(n.minZoom,Math.min(n.maxZoom,n.object.zoom/e)),n.object.updateProjectionMatrix(),u=!0):(console.warn("WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled."),n.enableZoom=!1)}function z(e){m.set(e.clientX,e.clientY)}function F(e){v.set(e.clientX,e.clientY)}function O(e){if(1==e.touches.length)m.set(e.touches[0].pageX,e.touches[0].pageY);else{var t=.5*(e.touches[0].pageX+e.touches[1].pageX),n=.5*(e.touches[0].pageY+e.touches[1].pageY);m.set(t,n)}}function H(e){if(1==e.touches.length)v.set(e.touches[0].pageX,e.touches[0].pageY);else{var t=.5*(e.touches[0].pageX+e.touches[1].pageX),n=.5*(e.touches[0].pageY+e.touches[1].pageY);v.set(t,n)}}function G(e){var t=e.touches[0].pageX-e.touches[1].pageX,n=e.touches[0].pageY-e.touches[1].pageY,i=Math.sqrt(t*t+n*n);b.set(0,i)}function U(e){if(1==e.touches.length)g.set(e.touches[0].pageX,e.touches[0].pageY);else{var t=.5*(e.touches[0].pageX+e.touches[1].pageX),n=.5*(e.touches[0].pageY+e.touches[1].pageY);g.set(t,n)}f.subVectors(g,m).multiplyScalar(n.rotateSpeed);var i=n.domElement;R(2*Math.PI*f.x/i.clientHeight),P(2*Math.PI*f.y/i.clientHeight),m.copy(g)}function k(e){if(1==e.touches.length)y.set(e.touches[0].pageX,e.touches[0].pageY);else{var t=.5*(e.touches[0].pageX+e.touches[1].pageX),n=.5*(e.touches[0].pageY+e.touches[1].pageY);y.set(t,n)}w.subVectors(y,v).multiplyScalar(n.panSpeed),I(w.x,w.y),v.copy(y)}function V(e){var t=e.touches[0].pageX-e.touches[1].pageX,i=e.touches[0].pageY-e.touches[1].pageY,a=Math.sqrt(t*t+i*i);E.set(0,a),S.set(0,Math.pow(E.y/b.y,n.zoomSpeed)),N(S.y),b.copy(E)}function W(e){if(!1!==n.enabled)switch(e.touches.length){case 1:switch(n.touches.ONE){case THREE.TOUCH.ROTATE:if(!1===n.enableRotate)return;U(e),s=r.TOUCH_ROTATE;break;case THREE.TOUCH.PAN:if(!1===n.enablePan)return;k(e),s=r.TOUCH_PAN;break;default:s=r.NONE}break;case 2:switch(n.touches.TWO){case THREE.TOUCH.DOLLY_PAN:if(!1===n.enableZoom&&!1===n.enablePan)return;!function(e){n.enableZoom&&G(e),n.enablePan&&H(e)}(e),s=r.TOUCH_DOLLY_PAN;break;case THREE.TOUCH.DOLLY_ROTATE:if(!1===n.enableZoom&&!1===n.enableRotate)return;!function(e){n.enableZoom&&G(e),n.enableRotate&&O(e)}(e),s=r.TOUCH_DOLLY_ROTATE;break;default:s=r.NONE}break;default:s=r.NONE}s!==r.NONE&&n.dispatchEvent(a)}function j(e){if(!1!==n.enabled)switch(e.preventDefault(),n.domElement.focus?n.domElement.focus():window.focus(),s){case r.TOUCH_ROTATE:if(!1===n.enableRotate)return;U(e),n.update();break;case r.TOUCH_PAN:if(!1===n.enablePan)return;k(e),n.update();break;case r.TOUCH_DOLLY_PAN:if(!1===n.enableZoom&&!1===n.enablePan)return;!function(e){n.enableZoom&&V(e),n.enablePan&&k(e)}(e),n.update();break;case r.TOUCH_DOLLY_ROTATE:if(!1===n.enableZoom&&!1===n.enableRotate)return;!function(e){n.enableZoom&&V(e),n.enableRotate&&U(e)}(e),n.update();break;default:s=r.NONE}}function Q(e){!1!==n.enabled&&e.preventDefault()}function Y(e){if(!1!==n.enabled){switch(e.preventDefault(),e.button){case n.mouseButtons.LEFT:switch(e.ctrlKey?n.mouseButtons.RIGHT:e.button){case n.mouseButtons.LEFT:if(e.ctrlKey&&!0===n.enablePan||e.button===n.mouseButtons.RIGHT){if(!1===n.enablePan)return;F(e),s=r.PAN}else{if(!1===n.enableRotate)return;z(e),s=r.ROTATE}break;case n.mouseButtons.MIDDLE:if(!1===n.enableZoom)return;!function(e){b.set(e.clientX,e.clientY)}(e),s=r.DOLLY;break;case n.mouseButtons.RIGHT:if(!1===n.enablePan)return;F(e),s=r.PAN}break;case n.mouseButtons.MIDDLE:if(!1===n.enableZoom)return;!function(e){b.set(e.clientX,e.clientY)}(e),s=r.DOLLY;break;case n.mouseButtons.RIGHT:if(!1===n.enableRotate)return;z(e),s=r.ROTATE}s!==r.NONE&&(n.domElement.ownerDocument.addEventListener("mousemove",Z),n.domElement.ownerDocument.addEventListener("mouseup",X),n.dispatchEvent(a))}}function Z(e){if(!1!==n.enabled)switch(e.preventDefault(),s){case r.ROTATE:if(!1===n.enableRotate)return;!function(e){g.set(e.clientX,e.clientY),f.subVectors(g,m).multiplyScalar(n.rotateSpeed);var t=n.domElement;R(2*Math.PI*f.x/t.clientHeight),P(2*Math.PI*f.y/t.clientHeight),m.copy(g),n.update()}(e);break;case r.DOLLY:if(!1===n.enableZoom)return;!function(e){E.set(e.clientX,e.clientY),S.subVectors(E,b),S.y>0?N(A()):S.y<0&&B(A()),b.copy(E),n.update()}(e);break;case r.PAN:if(!1===n.enablePan)return;!function(e){y.set(e.clientX,e.clientY),w.subVectors(y,v).multiplyScalar(n.panSpeed),I(w.x,w.y),v.copy(y),n.update()}(e)}}function X(e){!1!==n.enabled&&(n.domElement.ownerDocument.removeEventListener("mousemove",Z),n.domElement.ownerDocument.removeEventListener("mouseup",X),n.dispatchEvent({type:"end"}),s=r.NONE)}function K(e){!1!==n.enabled&&!1!==n.enableZoom&&s===r.NONE&&(e.preventDefault(),n.dispatchEvent(a),function(e){e.deltaY<0?B(A()):e.deltaY>0&&N(A()),n.update()}(e),n.dispatchEvent({type:"end"}))}function q(e){!1!==n.enabled&&!1!==n.enableKeys&&!1!==n.enablePan&&function(e){var t=!1;switch(e.keyCode){case n.keys.UP:I(0,n.keyPanSpeed),t=!0;break;case n.keys.BOTTOM:I(0,-n.keyPanSpeed),t=!0;break;case n.keys.LEFT:I(n.keyPanSpeed,0),t=!0;break;case n.keys.RIGHT:I(-n.keyPanSpeed,0),t=!0}t&&(e.preventDefault(),n.update())}(e)}function $(e){!1!==n.enabled&&(n.dispatchEvent(a),W(e))}function J(e){!1!==n.enabled&&(e.preventDefault(),j(e))}function ee(e){!1!==n.enabled&&(n.dispatchEvent({type:"end"}),s=r.NONE)}n.domElement.addEventListener("contextmenu",Q),n.domElement.addEventListener("mousedown",Y),n.domElement.addEventListener("wheel",K),n.domElement.addEventListener("touchstart",$),n.domElement.addEventListener("touchend",ee),n.domElement.addEventListener("touchmove",J),n.domElement.addEventListener("keydown",q),this.update()};THREE.OrbitControls.prototype=Object.create(THREE.EventDispatcher.prototype),THREE.OrbitControls.prototype.constructor=THREE.OrbitControls,Object.defineProperties(THREE.OrbitControls.prototype,{center:{get:function(){return console.warn("THREE.OrbitControls: .center has been renamed to .target"),this.target}},noZoom:{get:function(){return console.warn("THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead."),!this.enableZoom},set:function(e){console.warn("THREE.OrbitControls: .noZoom has been deprecated. Use .enableZoom instead."),this.enableZoom=!e}},noRotate:{get:function(){return console.warn("THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead."),!this.enableRotate},set:function(e){console.warn("THREE.OrbitControls: .noRotate has been deprecated. Use .enableRotate instead."),this.enableRotate=!e}},noPan:{get:function(){return console.warn("THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead."),!this.enablePan},set:function(e){console.warn("THREE.OrbitControls: .noPan has been deprecated. Use .enablePan instead."),this.enablePan=!e}},noKeys:{get:function(){return console.warn("THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead."),!this.enableKeys},set:function(e){console.warn("THREE.OrbitControls: .noKeys has been deprecated. Use .enableKeys instead."),this.enableKeys=!e}},staticMoving:{get:function(){return console.warn("THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead."),!this.enableDamping},set:function(e){console.warn("THREE.OrbitControls: .staticMoving has been deprecated. Use .enableDamping instead."),this.enableDamping=!e}},dynamicDampingFactor:{get:function(){return console.warn("THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead."),this.dampingFactor},set:function(e){console.warn("THREE.OrbitControls: .dynamicDampingFactor has been renamed. Use .dampingFactor instead."),this.dampingFactor=e}}});
+
+        // Código embutido para o jogo de xadrez 3D
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar tela de carregamento
+            const loadingScreen = document.getElementById('loading-screen');
+            const loadingBar = document.getElementById('loading-bar');
+            const loadingText = document.getElementById('loading-text');
+            
+            // Simular progresso de carregamento
+            let progress = 0;
+            const loadingInterval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 100) progress = 100;
+                
+                loadingBar.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    loadingText.textContent = 'Carregando recursos...';
+                } else if (progress < 60) {
+                    loadingText.textContent = 'Inicializando tabuleiro 3D...';
+                } else if (progress < 90) {
+                    loadingText.textContent = 'Preparando peças...';
+                } else {
+                    loadingText.textContent = 'Quase pronto...';
+                }
+                
+                if (progress === 100) {
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => {
+                            loadingScreen.style.display = 'none';
+                            initGame();
+                        }, 500);
+                    }, 500);
+                }
+            }, 100);
+            
+            // Função para inicializar o jogo
+            function initGame() {
+                // Criar container do jogo
+                const container = document.getElementById('chess-game-container');
+                
+                // Criar painel de controle
+                createControlPanel(container);
+                
+                // Criar painel de dicas em vídeo
+                createVideoTipsPanel(container);
+                
+                // Inicializar Three.js
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x121212);
+                
+                // Configurar câmera
+                const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 10, 10);
+                camera.lookAt(0, 0, 0);
+                
+                // Configurar renderer
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                container.appendChild(renderer.domElement);
+                
+                // Adicionar luzes
+                addLights(scene);
+                
+                // Criar tabuleiro
+                createBoard(scene);
+                
+                // Criar peças
+                createPieces(scene);
+                
+                // Configurar controles de câmera
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.1;
+                controls.rotateSpeed = 0.5;
+                controls.minDistance = 5;
+                controls.maxDistance = 20;
+                controls.maxPolarAngle = Math.PI / 2 - 0.1;
+                
+                // Função de animação
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                
+                // Iniciar animação
+                animate();
+                
+                // Lidar com redimensionamento da janela
+                window.addEventListener('resize', function() {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+            
+            // Função para adicionar luzes à cena
+            function addLights(scene) {
+                // Luz ambiente
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+                scene.add(ambientLight);
+                
+                // Luz direcional principal
+                const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                mainLight.position.set(10, 20, 10);
+                mainLight.castShadow = true;
+                mainLight.shadow.mapSize.width = 2048;
+                mainLight.shadow.mapSize.height = 2048;
+                mainLight.shadow.camera.near = 0.5;
+                mainLight.shadow.camera.far = 50;
+                mainLight.shadow.camera.left = -10;
+                mainLight.shadow.camera.right = 10;
+                mainLight.shadow.camera.top = 10;
+                mainLight.shadow.camera.bottom = -10;
+                scene.add(mainLight);
+                
+                // Luzes pontuais nas cores da bandeira do Brasil
+                const greenLight = new THREE.PointLight(0x009c3b, 0.5, 20);
+                greenLight.position.set(-5, 5, 5);
+                scene.add(greenLight);
+                
+                const yellowLight = new THREE.PointLight(0xffdf00, 0.5, 20);
+                yellowLight.position.set(5, 5, 5);
+                scene.add(yellowLight);
+                
+                const blueLight = new THREE.PointLight(0x002776, 0.5, 20);
+                blueLight.position.set(0, 5, -5);
+                scene.add(blueLight);
+            }
+            
+            // Função para criar o tabuleiro
+            function createBoard(scene) {
+                // Criar grupo para o tabuleiro
+                const boardGroup = new THREE.Group();
+                
+                // Criar base do tabuleiro
+                const baseGeometry = new THREE.BoxGeometry(9, 0.5, 9);
+                const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x002776 }); // Azul da bandeira do Brasil
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                base.position.y = -0.25;
+                base.receiveShadow = true;
+                boardGroup.add(base);
+                
+                // Criar casas do tabuleiro
+                const squareGeometry = new THREE.BoxGeometry(1, 0.1, 1);
+                
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const isWhite = (i + j) % 2 === 0;
+                        const squareMaterial = new THREE.MeshStandardMaterial({
+                            color: isWhite ? 0xffdf00 : 0x009c3b, // Amarelo e verde da bandeira do Brasil
+                            roughness: 0.7,
+                            metalness: 0.1
+                        });
+                        
+                        const square = new THREE.Mesh(squareGeometry, squareMaterial);
+                        square.position.set(i - 3.5, 0, j - 3.5);
+                        square.receiveShadow = true;
+                        boardGroup.add(square);
+                    }
+                }
+                
+                // Adicionar bordas
+                const borderGeometry = new THREE.BoxGeometry(10, 0.3, 1);
+                const borderMaterial = new THREE.MeshStandardMaterial({ color: 0x002776 }); // Azul da bandeira do Brasil
+                
+                const borderTop = new THREE.Mesh(borderGeometry, borderMaterial);
+                borderTop.position.set(0, 0, -4.5);
+                boardGroup.add(borderTop);
+                
+                const borderBottom = new THREE.Mesh(borderGeometry, borderMaterial);
+                borderBottom.position.set(0, 0, 4.5);
+                boardGroup.add(borderBottom);
+                
+                const borderLeft = new THREE.Mesh(borderGeometry, borderMaterial);
+                borderLeft.rotation.y = Math.PI / 2;
+                borderLeft.position.set(-4.5, 0, 0);
+                boardGroup.add(borderLeft);
+                
+                const borderRight = new THREE.Mesh(borderGeometry, borderMaterial);
+                borderRight.rotation.y = Math.PI / 2;
+                borderRight.position.set(4.5, 0, 0);
+                boardGroup.add(borderRight);
+                
+                // Adicionar texto "Xadrez da Manu"
+                const textGeometry = new THREE.TextGeometry("Xadrez da Manu", {
+                    font: new THREE.Font(),
+                    size: 0.5,
+                    height: 0.1
+                });
+                const textMaterial = new THREE.MeshStandardMaterial({ color: 0xffdf00 }); // Amarelo da bandeira do Brasil
+                const text = new THREE.Mesh(textGeometry, textMaterial);
+                text.position.set(-3, 0.3, -4);
+                boardGroup.add(text);
+                
+                // Adicionar o grupo do tabuleiro à cena
+                scene.add(boardGroup);
+            }
+            
+            // Função para criar as peças
+            function createPieces(scene) {
+                // Criar grupo para as peças
+                const piecesGroup = new THREE.Group();
+                
+                // Definir cores das peças
+                const whiteMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    roughness: 0.5,
+                    metalness: 0.2
+                });
+                
+                const blackMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x222222,
+                    roughness: 0.5,
+                    metalness: 0.2
+                });
+                
+                // Criar peões
+                for (let i = 0; i < 8; i++) {
+                    createPawn(i - 3.5, 0, -2.5, whiteMaterial, piecesGroup); // Peões brancos
+                    createPawn(i - 3.5, 0, 2.5, blackMaterial, piecesGroup);  // Peões pretos
+                }
+                
+                // Criar torres
+                createRook(-3.5, 0, -3.5, whiteMaterial, piecesGroup); // Torre branca esquerda
+                createRook(3.5, 0, -3.5, whiteMaterial, piecesGroup);  // Torre branca direita
+                createRook(-3.5, 0, 3.5, blackMaterial, piecesGroup);  // Torre preta esquerda
+                createRook(3.5, 0, 3.5, blackMaterial, piecesGroup);   // Torre preta direita
+                
+                // Criar cavalos
+                createKnight(-2.5, 0, -3.5, whiteMaterial, piecesGroup); // Cavalo branco esquerdo
+                createKnight(2.5, 0, -3.5, whiteMaterial, piecesGroup);  // Cavalo branco direito
+                createKnight(-2.5, 0, 3.5, blackMaterial, piecesGroup);  // Cavalo preto esquerdo
+                createKnight(2.5, 0, 3.5, blackMaterial, piecesGroup);   // Cavalo preto direito
+                
+                // Criar bispos
+                createBishop(-1.5, 0, -3.5, whiteMaterial, piecesGroup); // Bispo branco esquerdo
+                createBishop(1.5, 0, -3.5, whiteMaterial, piecesGroup);  // Bispo branco direito
+                createBishop(-1.5, 0, 3.5, blackMaterial, piecesGroup);  // Bispo preto esquerdo
+                createBishop(1.5, 0, 3.5, blackMaterial, piecesGroup);   // Bispo preto direito
+                
+                // Criar damas
+                createQueen(-0.5, 0, -3.5, whiteMaterial, piecesGroup); // Dama branca
+                createQueen(-0.5, 0, 3.5, blackMaterial, piecesGroup);  // Dama preta
+                
+                // Criar reis
+                createKing(0.5, 0, -3.5, whiteMaterial, piecesGroup); // Rei branco
+                createKing(0.5, 0, 3.5, blackMaterial, piecesGroup);  // Rei preto
+                
+                // Adicionar o grupo de peças à cena
+                scene.add(piecesGroup);
+            }
+            
+            // Funções para criar cada tipo de peça
+            function createPawn(x, y, z, material, group) {
+                const pawnGeometry = new THREE.CylinderGeometry(0.2, 0.3, 0.6, 16);
+                const pawn = new THREE.Mesh(pawnGeometry, material);
+                pawn.position.set(x, y + 0.3, z);
+                pawn.castShadow = true;
+                group.add(pawn);
+            }
+            
+            function createRook(x, y, z, material, group) {
+                const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.4, 16);
+                const topGeometry = new THREE.BoxGeometry(0.6, 0.3, 0.6);
+                
+                const base = new THREE.Mesh(baseGeometry, material);
+                base.position.y = y + 0.2;
+                base.castShadow = true;
+                
+                const top = new THREE.Mesh(topGeometry, material);
+                top.position.y = y + 0.55;
+                top.castShadow = true;
+                
+                const rook = new THREE.Group();
+                rook.add(base);
+                rook.add(top);
+                rook.position.set(x, 0, z);
+                
+                group.add(rook);
+            }
+            
+            function createKnight(x, y, z, material, group) {
+                const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.4, 16);
+                const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+                
+                const base = new THREE.Mesh(baseGeometry, material);
+                base.position.y = y + 0.2;
+                base.castShadow = true;
+                
+                const head = new THREE.Mesh(headGeometry, material);
+                head.position.y = y + 0.6;
+                head.position.x = 0.1;
+                head.castShadow = true;
+                
+                const knight = new THREE.Group();
+                knight.add(base);
+                knight.add(head);
+                knight.position.set(x, 0, z);
+                
+                group.add(knight);
+            }
+            
+            function createBishop(x, y, z, material, group) {
+                const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.4, 16);
+                const topGeometry = new THREE.ConeGeometry(0.2, 0.6, 16);
+                
+                const base = new THREE.Mesh(baseGeometry, material);
+                base.position.y = y + 0.2;
+                base.castShadow = true;
+                
+                const top = new THREE.Mesh(topGeometry, material);
+                top.position.y = y + 0.7;
+                top.castShadow = true;
+                
+                const bishop = new THREE.Group();
+                bishop.add(base);
+                bishop.add(top);
+                bishop.position.set(x, 0, z);
+                
+                group.add(bishop);
+            }
+            
+            function createQueen(x, y, z, material, group) {
+                const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.4, 16);
+                const middleGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+                const topGeometry = new THREE.ConeGeometry(0.15, 0.3, 16);
+                
+                const base = new THREE.Mesh(baseGeometry, material);
+                base.position.y = y + 0.2;
+                base.castShadow = true;
+                
+                const middle = new THREE.Mesh(middleGeometry, material);
+                middle.position.y = y + 0.6;
+                middle.castShadow = true;
+                
+                const top = new THREE.Mesh(topGeometry, material);
+                top.position.y = y + 0.95;
+                top.castShadow = true;
+                
+                const queen = new THREE.Group();
+                queen.add(base);
+                queen.add(middle);
+                queen.add(top);
+                queen.position.set(x, 0, z);
+                
+                group.add(queen);
+            }
+            
+            function createKing(x, y, z, material, group) {
+                const baseGeometry = new THREE.CylinderGeometry(0.3, 0.4, 0.4, 16);
+                const middleGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+                const topGeometry = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+                const crossGeometry = new THREE.BoxGeometry(0.4, 0.1, 0.1);
+                
+                const base = new THREE.Mesh(baseGeometry, material);
+                base.position.y = y + 0.2;
+                base.castShadow = true;
+                
+                const middle = new THREE.Mesh(middleGeometry, material);
+                middle.position.y = y + 0.6;
+                middle.castShadow = true;
+                
+                const top = new THREE.Mesh(topGeometry, material);
+                top.position.y = y + 1;
+                top.castShadow = true;
+                
+                const cross = new THREE.Mesh(crossGeometry, material);
+                cross.position.y = y + 1;
+                cross.castShadow = true;
+                
+                const king = new THREE.Group();
+                king.add(base);
+                king.add(middle);
+                king.add(top);
+                king.add(cross);
+                king.position.set(x, 0, z);
+                
+                group.add(king);
+            }
+            
+            // Função para criar o painel de controle
+            function createControlPanel(container) {
+                const controlPanel = document.createElement('div');
+                controlPanel.className = 'game-control-panel';
+                
+                controlPanel.innerHTML = `
+                    <h2 class="panel-title">Xadrez da Manu</h2>
+                    
+                    <div class="selector-container">
+                        <label class="selector-label">Modo de Jogo</label>
+                        <select class="selector" id="game-mode-selector">
+                            <option value="standard">Modo Padrão</option>
+                            <option value="training">Modo Treinamento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="selector-container">
+                        <label class="selector-label">Dificuldade</label>
+                        <select class="selector" id="difficulty-selector">
+                            <option value="beginner">Iniciante</option>
+                            <option value="intermediate">Intermediário</option>
+                            <option value="advanced">Avançado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="selector-container">
+                        <label class="selector-label">Jogar como</label>
+                        <select class="selector" id="color-selector">
+                            <option value="white">Brancas</option>
+                            <option value="black">Pretas</option>
+                            <option value="random">Aleatório</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-buttons">
+                        <button class="control-button new-game-button">Novo Jogo</button>
+                        <button class="control-button undo-button">Desfazer</button>
+                        <button class="control-button hint-button">Dica</button>
+                        <button class="control-button flip-button">Girar</button>
+                    </div>
+                    
+                    <div class="training-controls" style="display: none;">
+                        <button class="control-button video-tips-button">Dicas em Vídeo</button>
+                        <button class="control-button show-moves-button">Mostrar Movimentos</button>
+                        <button class="control-button analyze-button">Analisar Posição</button>
+                    </div>
+                `;
+                
+                container.appendChild(controlPanel);
+                
+                // Adicionar eventos aos controles
+                const gameModeSelector = document.getElementById('game-mode-selector');
+                const trainingControls = document.querySelector('.training-controls');
+                
+                gameModeSelector.addEventListener('change', function() {
+                    if (this.value === 'training') {
+                        trainingControls.style.display = 'grid';
+                    } else {
+                        trainingControls.style.display = 'none';
+                    }
+                });
+                
+                const videoTipsButton = document.querySelector('.video-tips-button');
+                videoTipsButton.addEventListener('click', function() {
+                    const videoTipsPanel = document.querySelector('.video-tips-panel');
+                    videoTipsPanel.style.display = 'block';
+                });
+            }
+            
+            // Função para criar o painel de dicas em vídeo
+            function createVideoTipsPanel(container) {
+                const videoTipsPanel = document.createElement('div');
+                videoTipsPanel.className = 'video-tips-panel';
+                
+                videoTipsPanel.innerHTML = `
+                    <h2 class="tips-panel-title">Dicas em Vídeo</h2>
+                    <button class="close-button">×</button>
+                    
+                    <div class="tips-categories">
+                        <button class="category-button active">Aberturas</button>
+                        <button class="category-button">Meio-jogo</button>
+                        <button class="category-button">Final</button>
+                        <button class="category-button">Táticas</button>
+                        <button class="category-button">Estratégia</button>
+                    </div>
+                    
+                    <div class="video-container">
+                        <div class="video-placeholder">
+                            Vídeo de demonstração
+                        </div>
+                    </div>
+                    
+                    <h3 class="video-title">Princípios de Abertura</h3>
+                    
+                    <p class="video-description">
+                        Aprenda os princípios fundamentais para iniciar bem sua partida de xadrez.
+                        Controle do centro, desenvolvimento de peças e segurança do rei são conceitos
+                        essenciais para uma boa abertura.
+                    </p>
+                    
+                    <div class="tips-navigation">
+                        <button class="nav-button prev-button">Anterior</button>
+                        <button class="nav-button next-button">Próximo</button>
+                    </div>
+                `;
+                
+                container.appendChild(videoTipsPanel);
+                
+                // Adicionar evento ao botão de fechar
+                const closeButton = videoTipsPanel.querySelector('.close-button');
+                closeButton.addEventListener('click', function() {
+                    videoTipsPanel.style.display = 'none';
+                });
+                
+                // Disponibilizar o painel globalmente
+                window.videoTipsPanel = videoTipsPanel;
+            }
+        });
+    </script>
+</body>
+</html>
